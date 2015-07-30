@@ -4,10 +4,8 @@ title:  "Reading the word2vec code and refactory."
 date:   2015-07-29 17:53:55
 categories: Reading Code
 ---
-主要读过《[word2vec 中的数学原理详解（六）若干源码细节](http://blog.csdn.net/itplus/article/details/37999613)》和《[word2vec源码解析之word2vec.c](http://blog.csdn.net/lingerlanlan/article/details/38232755)》，然后结合自己的理解。并对代码做了一定程度上的重构。
-You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run `jekyll serve`, which launches a web server and auto-regenerates your site when a file is updated.
+主要读过`[word2vec 中的数学原理详解（六）若干源码细节](http://blog.csdn.net/itplus/article/details/37999613)`和`[word2vec源码解析之word2vec.c](http://blog.csdn.net/lingerlanlan/article/details/38232755)`，然后结合自己的理解。并对代码做了一定程度上的重构。
 
-To add new posts, simply add a file in the `_posts` directory that follows the convention `YYYY-MM-DD-name-of-post.ext` and includes the necessary front matter. Take a look at the source for this post to get an idea about how it works.
 
 {% highlight c %}
 #include <stdio.h>
@@ -46,10 +44,12 @@ char save_vocab_file[MAX_STRING], read_vocab_file[MAX_STRING];
 struct vocab_word *vocab;
 int binary = 0, cbow = 1, debug_mode = 2, window = 5, min_count = 5, num_threads = 12, min_reduce = 1;
 int *vocabulary_hash;
-int64_t vocabulary_max_size = 1000, vocabulary_size = 0, layer1_size = 100;
+int64_t vocabulary_max_size = 1000, vocabulary_size = 0, layer1_size = 100; // vocabulary_size：词典大小，layer1_size：向量长度，隐含层的大小
 int64_t train_words = 0, word_count_actual = 0, iter = 5, file_size = 0, classes = 0;
 real alpha = 0.025, starting_alpha, sample = 1e-3;
 real *syn0, *syn1, *syn1neg, *expTable;
+// syn0：input -> hidden 的 weights，是一个1维数组，但是可以按照二维数组来理解。访问时实际上可以看成  syn0[i, j]，i为第i个单词，j为第j个隐含单元。大小：词典大小 * 隐含层大小
+// syn1：hidden->output 的 weights
 clock_t start;
 
 int hs = 0, negative = 5;
@@ -501,14 +501,14 @@ initialize_net ()
 void *
 train_model_thread (void *id)
 {
-  int64_t a, b, d, cw, word, last_word, sentence_length = 0, sentence_position = 0;
+  int64_t a, b, d, cw, word_index, last_word_index, sentence_length = 0, sentence_position = 0;
   int64_t word_count = 0, last_word_count = 0, sentence[MAX_SENTENCE_LENGTH + 1];
   int64_t l1, l2, c, target, label, local_iter = iter;
   uint64_t next_random = (int64_t) id;
   real f, g;
   clock_t now;
-  real *neu1 = (real *) calloc (layer1_size, sizeof(real));
-  real *neu1e = (real *) calloc (layer1_size, sizeof(real));
+  real *neu1 = (real *) calloc (layer1_size, sizeof(real)); // 隐含层神经的值， 大小： 隐含层大小
+  real *neu1e = (real *) calloc (layer1_size, sizeof(real)); // 隐含层误差量， 大小： 隐含层大小
   FILE *fi = fopen (train_file, "rb");
   fseek (fi, file_size / (int64_t) num_threads * (int64_t) id, SEEK_SET);
   while (true)
@@ -533,31 +533,31 @@ train_model_thread (void *id)
         {
           while (true)
             {
-              word = read_word_index (fi);
+              word_index = read_word_index (fi);
               if (feof (fi))
                 break;
-              if (word == -1)
+              if (word_index == -1)
                 continue;
               word_count++;
-              if (word == 0) // 换行 <s>时跳出
+              if (word_index == 0) // 换行 <s>时跳出
                 break;
               // The subsampling randomly discards frequent words while keeping the ranking same
               if (sample > 0)
                 {
-                  real ran = (sqrt (vocab[word].frequency / (sample * train_words)) + 1) * (sample * train_words)
-                      / vocab[word].frequency;
+                  real ran = (sqrt (vocab[word_index].frequency / (sample * train_words)) + 1) * (sample * train_words)
+                      / vocab[word_index].frequency;
                   next_random = next_random * (uint64_t) 25214903917 + 11;
                   if (ran < (next_random & 0xFFFF) / (real) 65536)
                     continue; // 按一定概率舍去高频词
                 }
-              sentence[sentence_length] = word; // 组成句子
+              sentence[sentence_length] = word_index; // 组成句子，句子数组的值为word在词典中的index
               sentence_length++;
               if (sentence_length >= MAX_SENTENCE_LENGTH)
                 break;
             }
           sentence_position = 0;
         }
-      if (feof (fi) || (word_count > train_words / num_threads)) // 还有词没训练完成
+      if (feof (fi) || (word_count > train_words / num_threads)) //
         {
           word_count_actual += word_count - last_word_count;
           local_iter--;
@@ -569,8 +569,8 @@ train_model_thread (void *id)
           fseek (fi, file_size / (int64_t) num_threads * (int64_t) id, SEEK_SET);
           continue;
         }
-      word = sentence[sentence_position];
-      if (word == -1)
+      word_index = sentence[sentence_position];
+      if (word_index == -1)
         continue;
       for (c = 0; c < layer1_size; c++)
         neu1[c] = 0;
@@ -590,11 +590,11 @@ train_model_thread (void *id)
                   continue;
                 if (c >= sentence_length)
                   continue;
-                last_word = sentence[c];
-                if (last_word == -1)
+                last_word_index = sentence[c];
+                if (last_word_index == -1)
                   continue;
                 for (c = 0; c < layer1_size; c++)
-                  neu1[c] += syn0[c + last_word * layer1_size];
+                  neu1[c] += syn0[c + last_word_index * layer1_size]; // 核心计算
                 cw++;
               }
           if (cw)
@@ -602,10 +602,10 @@ train_model_thread (void *id)
               for (c = 0; c < layer1_size; c++)
                 neu1[c] /= cw;
               if (hs)
-                for (d = 0; d < vocab[word].codelen; d++)
+                for (d = 0; d < vocab[word_index].codelen; d++)
                   {
                     f = 0;
-                    l2 = vocab[word].point[d] * layer1_size;
+                    l2 = vocab[word_index].point[d] * layer1_size;
                     // Propagate hidden -> output
                     for (c = 0; c < layer1_size; c++)
                       f += neu1[c] * syn1[c + l2];
@@ -616,7 +616,7 @@ train_model_thread (void *id)
                     else
                       f = expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
                     // 'g' is the gradient multiplied by the learning rate
-                    g = (1 - vocab[word].code[d] - f) * alpha;
+                    g = (1 - vocab[word_index].code[d] - f) * alpha;
                     // Propagate errors output -> hidden
                     for (c = 0; c < layer1_size; c++)
                       neu1e[c] += g * syn1[c + l2];
@@ -630,7 +630,7 @@ train_model_thread (void *id)
                   {
                     if (d == 0)
                       {
-                        target = word;
+                        target = word_index;
                         label = 1;
                       }
                     else
@@ -639,7 +639,7 @@ train_model_thread (void *id)
                         target = table[(next_random >> 16) % table_size];
                         if (target == 0)
                           target = next_random % (vocabulary_size - 1) + 1;
-                        if (target == word)
+                        if (target == word_index)
                           continue;
                         label = 0;
                       }
@@ -667,11 +667,11 @@ train_model_thread (void *id)
                       continue;
                     if (c >= sentence_length)
                       continue;
-                    last_word = sentence[c];
-                    if (last_word == -1)
+                    last_word_index = sentence[c];
+                    if (last_word_index == -1)
                       continue;
                     for (c = 0; c < layer1_size; c++)
-                      syn0[c + last_word * layer1_size] += neu1e[c];
+                      syn0[c + last_word_index * layer1_size] += neu1e[c];
                   }
             }
         }
@@ -685,18 +685,18 @@ train_model_thread (void *id)
                   continue;
                 if (c >= sentence_length)
                   continue;
-                last_word = sentence[c];
-                if (last_word == -1)
+                last_word_index = sentence[c];
+                if (last_word_index == -1)
                   continue;
-                l1 = last_word * layer1_size;
+                l1 = last_word_index * layer1_size;
                 for (c = 0; c < layer1_size; c++)
                   neu1e[c] = 0;
                 // HIERARCHICAL SOFTMAX
                 if (hs)
-                  for (d = 0; d < vocab[word].codelen; d++)
+                  for (d = 0; d < vocab[word_index].codelen; d++)
                     {
                       f = 0;
-                      l2 = vocab[word].point[d] * layer1_size;
+                      l2 = vocab[word_index].point[d] * layer1_size;
                       // Propagate hidden -> output
                       for (c = 0; c < layer1_size; c++)
                         f += syn0[c + l1] * syn1[c + l2];
@@ -707,7 +707,7 @@ train_model_thread (void *id)
                       else
                         f = expTable[(int) ((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
                       // 'g' is the gradient multiplied by the learning rate
-                      g = (1 - vocab[word].code[d] - f) * alpha;
+                      g = (1 - vocab[word_index].code[d] - f) * alpha;
                       // Propagate errors output -> hidden
                       for (c = 0; c < layer1_size; c++)
                         neu1e[c] += g * syn1[c + l2];
@@ -721,7 +721,7 @@ train_model_thread (void *id)
                     {
                       if (d == 0)
                         {
-                          target = word;
+                          target = word_index;
                           label = 1;
                         }
                       else
@@ -730,7 +730,7 @@ train_model_thread (void *id)
                           target = table[(next_random >> 16) % table_size];
                           if (target == 0)
                             target = next_random % (vocabulary_size - 1) + 1;
-                          if (target == word)
+                          if (target == word_index)
                             continue;
                           label = 0;
                         }
@@ -991,8 +991,6 @@ main (int argc, char **argv)
 
 {% endhighlight %}
 
-Check out the [Jekyll docs][jekyll] for more info on how to get the most out of Jekyll. File all bugs/feature requests at [Jekyll’s GitHub repo][jekyll-gh]. If you have questions, you can ask them on [Jekyll’s dedicated Help repository][jekyll-help].
-
 [info]:      http://halo9pan.info
 [info-gh]:   http://github.halo9pan.info
-[info-blog]: http://blog.halo9pan.info
+[info-blog]: http://blog.halo9pan.info
