@@ -19,7 +19,7 @@
 /* Content */
 
 body {
-  font-family: "Crimson Text", Georgia, Cambria, "Times New Roman", Times, serif;
+  font-family: Consolas, sans-serif;
   font-size: 22px;
   -webkit-font-smoothing: antialiased;
   font-weight: 400;
@@ -32,8 +32,9 @@ html, body {
   height: 100%;
 }
 p, form {
-  line-height: 1.4;
-  margin: 30px auto;
+  font-size: 0.8em;
+  line-height: 1.2;
+  margin: 20px auto;
   word-wrap: break-word;
 }
 p * {
@@ -112,10 +113,15 @@ h2 {
   margin-top: 40px;
   margin-bottom: 30px;
 }
-h3, h4, h5, h6 {
-  font-size: 1.05em;
+h3 {
+  font-size: 1.0em;
   margin-top: 40px;
   margin-bottom: 30px;
+}
+h4 {
+  font-size: 0.8em;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 .meta {
   color: rgba({{ site.text-color }}, 0.5);
@@ -419,7 +425,7 @@ nav a.current {
   pre,
   p,
   form {
-    margin: 40px 0;
+    margin: 20px 0;
   }
   ol, ul {
     padding-left: 50px;
@@ -438,16 +444,25 @@ nav a.current {
   h1 {
     font-size: 2.6em;
     margin-bottom: -10px;
+    color: rgba({{ site.text-color }}, 1);
   }
   h2 {
     font-size: 1.8em;
     margin-top: 60px;
     margin-bottom: -10px;
+    color: rgba({{ site.text-color }}, 0.9);
   }
-  h3, h4, h5, h6 {
+  h3 {
     font-size: 1.2em;
-    margin-top: 60px;
+    margin-top: 40px;
     margin-bottom: -10px;
+    color: rgba({{ site.text-color }}, 0.8);
+  }
+  h4, h5, h6 {
+    font-size: 1.0em;
+    margin-top: 20px;
+    margin-bottom: -10px;
+    color: rgba({{ site.text-color }}, 0.7);
   }
   .img-only {
     margin: 0 -30px;
