@@ -4,7 +4,7 @@ title:  "Setting up Your Development Environment."
 date:   2015-08-21 14:00:00
 categories: Development
 ---
-工欲善其事，必先利其器。  
+It is necessary to have effective tools to do good work.
 
 ## Windows  
 

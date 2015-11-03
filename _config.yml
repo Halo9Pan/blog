@@ -1,15 +1,15 @@
 
 # The name of your website.
 name: PHoneIX
-title: 心有多远，路就有多远。
+title: The further the heart is, the farther the road is.
 
 description:
 
   # Discription of your site, this will show up in google.
-  meta: 代码, 数据, 云计算, 机器学习, 人工智能, 交互设计, 全栈程序员
+  meta: Coding, Data, Cloud Computing, Machine Learning, Artificial Intelligence, User Experience, Full-Stack Programmer
 
   # Discription of your site, this will show up on the front page.
-  subtitle: 心有多远，路就有多远。
+  subtitle: The further the heart is, the farther the road is.
 
 author:
   name: Halo9Pan
@@ -21,11 +21,11 @@ author:
   # want it.
   info:
 
-url: http://steinvc.github.io
+url: http://blog.halo9pan.info
 baseurl: ""
 
 # language attribute in <html> element.
-lang: zh
+lang: en
 
 # FROM THIS POINT ON EVERYTHING IS OPTIONAL
 
@@ -38,7 +38,7 @@ lang: zh
 show-subtitle: true
 display-social-icons: false
 
-footer-text: <a href="http://halo9pan.info">Halo9Pan</a>@<a href="http://github.com/Halo9Pan">GitHub</a><p>代码工匠，数据画家，魔云散人，全栈程序员，交互设计师，智能实践者……</p>
+footer-text: <a href="http://halo9pan.info">Halo9Pan</a>@<a href="http://github.com/Halo9Pan">GitHub</a><p>Code Artisan, Data Visualizer, Cloud Person, Interaction Designer, Intelligent Practitioner, Full Stack Developer</p>
 
 # Preferrably 64px in height. Leave empty = disbale.
 logo-image: # /img/logo.png
@@ -115,7 +115,7 @@ paypal:
 # Usefull for translating into other languages.
 
 var_on_the_web: On the web
-var_read: 阅读 # Text after each post summary on the homepage.
+var_read: Reading # Text after each post summary on the homepage.
 var_newer: Newer
 var_older: Older
 var_next_post: Next post
